@@ -13,6 +13,8 @@ import numpy as np
 # Directly from data
 data = [[1, 2], [3, 4]]
 x_data = torch.tensor(data)
+t = torch.empty(3, 4)
+
 
 # From a NumPy array
 np_array = np.array(data)
@@ -43,11 +45,18 @@ print(f"Device tensor is stored on: {tensor.device}")
 
 # We move our tensor to the GPU if available
 if torch.cuda.is_available():
-    tensor = tensor.to("cuda")
+    my_device = torch.device("cuda")
+else:
+    my_device = torch.device("cpu")
+
 
 tensor = torch.ones(4, 4)
+tensor = tensor.to("cuda")
+tensor = torch.ones(4, 4, device="cuda")
 tensor[:, 1] = 0
 print(tensor)
+
+
 
 # Out:
 # tensor([[1., 0., 1., 1.],
@@ -73,17 +82,34 @@ print(tensor, "\n")
 tensor.add_(5)
 print(tensor)
 
+# copy a tensor
+a = t.clone()   # also copies autograd if enabled
+a = t.detach().clone()  # ignore autograd information
+
 # Bridge with NumPy
 # Tensors on the CPU and NumPy arrays can share their underlying memory locations, and changing one will change the other.
 t = torch.ones(5)
 print(f"t: {t}")
-n = t.numpy()
+n = t.numpy()   # Note: This does not change the underlying memory allcoated
 print(f"n: {n}")
+numpy_array = np.ones(3, 2)     # Note: This does not change the underlying memory allcoated
+t = torch.from_numpy(numpy_array)
 
 # A change in the tensor reflects in the NumPy array.
 t.add_(1)
 print(f"t: {t}")
 print(f"n: {n}")
+
+# Squeeze and unsqueeze
+a = torch.empty(2, 2)
+b = a.unsqueeze(0)   # add new 0th dimension :Add batch size of 1 to the new batch dimension
+c = b.squeeze(0)    # Remove 0th dimension of 1
+
+print(a.shape, b.shape)
+
+# reshape
+a = torch.empty(6, 20, 20)
+b = a.reshape(6 * 20 * 20)  # Note: When it can, reshape() always returns a view
 
 #######################################################################################
 # torch.autograd
@@ -154,6 +180,9 @@ model.fc = nn.Linear(512, 10)
 
 # Optimize only the classifier
 optimizer = optim.SGD(model.fc.parameters(), lr=1e-2, momentum=0.9)
+loss.backward()     # back propagation
+optimizer.step()    # update the weights
+optimizer.zero_grad()   # reset the gradients
 
 # Notice although we register all the parameters in the optimizer, the only parameters that are computing gradients (and hence updated in gradient descent) are the weights and bias of the classifier.
 
@@ -161,4 +190,51 @@ optimizer = optim.SGD(model.fc.parameters(), lr=1e-2, momentum=0.9)
 
 
 #######################################################################################
+# pytorch layer types
+# Linear layer
+lin = torch.nn.Linear(3, 2)     # 3 inputs, 2 outputs
+# Convolutional layer
+conv1 = torch.nn.Conv2d(1, 6, 5)
+conv2 = torch.nn.Conv2d(6, 16, 3)
+# Recurrent layer
+lstm = torch.nn.LSTM(embedding_dim, hidden_dim)
+# Transformers
+# data manipulation layers
+torch.nn.MaxPool2d()
+torch.nn.MinPool2d()
+# Normalization
+torch.nn.BatchNorm1d()
+# Dropout layer: Randomly set some of elements to be 0
+dropout = torch.nn.Dropout(p=0.3)
+dropout(t)
 
+########################################################################################
+# Optimzer
+## Common parameters:
+###    1. lr: learning rate, size of steps
+###    2. momentum: Adjust size of steps given the size of gradient
+###    3. weight_decay: encourage weight regularization, avoid overfitting
+
+## hyperparameters: The best value for lr/momentum/weight_decay. Difficult to know priori, often found via grid search or similar methods
+########################################################################################
+# TensorBoard
+from torch.utils.tensoroard import SummaryWriter
+########################################################################################
+torch.utils.data.DataLoader
+########################################################################################
+## 1. Data
+## 2. Model
+## 3. Loss Function
+## 4. Optimizer
+
+# inference
+model.eval()    # or
+model.train(False)
+
+########################################################################################
+# torchscript
+torch.jit.script()  # may not cover 100% of operators
+torch.jit.trace()   # works most of the time; less deterministic(not preserve control flow)
+
+
+# Epoch, one complete pass of all the training dataset
