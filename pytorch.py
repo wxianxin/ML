@@ -204,6 +204,7 @@ torch.nn.MaxPool2d()
 torch.nn.MinPool2d()
 # Normalization
 torch.nn.BatchNorm1d()
+# Dropout if overfitting
 # Dropout layer: Randomly set some of elements to be 0
 dropout = torch.nn.Dropout(p=0.3)
 dropout(t)
